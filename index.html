@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediaCleaner — Zero-Server Media Utility | Vapor Division</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Top Navigation & Telemetry-Free Status -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-icon">⚡</span>
+      <div>
+        <h1>MediaCleaner <span class="version">v1.1</span></h1>
+        <p class="subtitle">by <a href="https://github.com/VaporDivision" target="_blank" rel="noopener">Vapor Division</a></p>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-pill">
+        <span class="stat-label">REVIEWED</span>
+        <span class="stat-value" id="stat-reviewed">0 / 0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">TRASHED</span>
+        <span class="stat-value" id="stat-trashed">0</span>
+      </div>
+      <div class="stat-pill highlight">
+        <span class="stat-label">SPACE FREED</span>
+        <span class="stat-value" id="stat-freed">0.0 MB</span>
+      </div>
+    </div>
+
+    <div class="privacy-badge" title="100% Client-Side Execution. Zero Server Uploads.">
+      <span class="dot"></span> 100% Local-First
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="workspace">
+    <!-- Left / Top Control Sidebar -->
+    <aside class="sidebar">
+      <div class="panel">
+        <h2 class="panel-title">📂 Media Source</h2>
+        <p class="panel-desc">Select photos/videos from your phone or computer. Everything stays inside your browser RAM.</p>
+        
+        <div class="source-actions">
+          <button id="btn-open-media" class="btn btn-primary">
+            🖼️ Select Photos / Videos
+          </button>
+          <button id="btn-open-folder" class="btn btn-secondary">
+            📁 Select Entire Folder (PC/Mac)
+          </button>
+          <!-- Universal Hidden Inputs -->
+          <input type="file" id="file-input" multiple accept="image/*,video/*" hidden />
+          <input type="file" id="folder-input" webkitdirectory directory multiple hidden />
+          
+          <button id="btn-load-demo" class="btn btn-ghost">
+            🧪 Reload Simulation Deck
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode Switcher -->
+      <div class="panel">
+        <h2 class="panel-title">🧭 Workspace Mode</h2>
+        <nav class="mode-nav">
+          <button class="mode-btn active" data-mode="deck">
+            <span>🔥 Swipe Deck</span>
+            <span class="badge" id="badge-deck">0</span>
+          </button>
+          <button class="mode-btn" data-mode="videos">
+            <span>🎬 Heavy Media</span>
+            <span class="badge" id="badge-videos">0</span>
+          </button>
+          <button class="mode-btn" data-mode="trash">
+            <span>🗑️ Trash Stage</span>
+            <span class="badge badge-danger" id="badge-trash">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- AI Heuristics Filter -->
+      <div class="panel">
+        <h2 class="panel-title">🤖 Local AI Filter</h2>
+        <div class="filter-group">
+          <button class="filter-chip active" data-filter="all">All Media</button>
+          <button class="filter-chip" data-filter="video">Videos Only</button>
+          <button class="filter-chip" data-filter="blurry">Blurry / Soft</button>
+          <button class="filter-chip" data-filter="dark">Low Light</button>
+          <button class="filter-chip" data-filter="duplicate">Duplicates (dHash)</button>
+        </div>
+      </div>
+
+      <!-- Ethical Ad / Sponsor Slot -->
+      <div class="ad-slot">
+        <div class="ad-tag">SPONSORED • ETHICAL AD</div>
+        <p class="ad-text"><strong>Proton Drive</strong> — Encrypted cloud storage for files you actually decide to keep.</p>
+        <a href="#donate-modal" id="btn-open-donate" class="donate-trigger">☕ Support Vapor Division</a>
+      </div>
+    </aside>
+
+    <!-- Center Stage -->
+    <section class="stage">
+      <!-- VIEW 1: TINDER SWIPE DECK -->
+      <div class="view-section active" id="view-deck">
+        <div class="card-arena" id="card-arena">
+          <!-- Dynamic Card Rendered via JS -->
+          <div class="swipe-card" id="active-card">
+            <div class="swipe-indicator keep" id="ind-keep">KEEP</div>
+            <div class="swipe-indicator trash" id="ind-trash">TRASH</div>
+            
+            <div class="media-preview" id="media-preview">
+              <canvas id="preview-canvas"></canvas>
+              <img id="preview-img" alt="Preview" hidden />
+              <video id="preview-video" controls playsinline preload="metadata" hidden></video>
+              <button class="sim-play-btn" id="btn-sim-play" hidden>▶ Play Video Preview</button>
+            </div>
+
+            <div class="card-meta">
+              <div class="meta-header">
+                <h3 id="meta-filename">sample_burst_01.jpg</h3>
+                <span class="meta-size" id="meta-filesize">4.2 MB</span>
+              </div>
+              <div class="heuristic-tags" id="meta-tags"></div>
+            </div>
+          </div>
+
+          <!-- Empty State when Deck is Finished -->
+          <div class="empty-state" id="empty-deck" hidden>
+            <div class="empty-icon">✨</div>
+            <h2>Deck Cleared!</h2>
+            <p>You have reviewed all media in this filter.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" id="btn-review-trash">Review Trash Stage</button>
+              <button class="btn btn-secondary" id="btn-support-end">☕ Buy Us a Coffee</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Swipe Controls -->
+        <div class="swipe-controls" id="swipe-controls">
+          <button class="control-btn btn-trash" id="btn-swipe-left" title="Shortcut: Left Arrow (←)">
+            <span class="icon">✕</span>
+            <span class="label">Trash (←)</span>
+          </button>
+          <button class="control-btn btn-undo" id="btn-undo" title="Shortcut: Z">
+            <span class="icon">↺</span>
+            <span class="label">Undo</span>
+          </button>
+          <button class="control-btn btn-keep" id="btn-swipe-right" title="Shortcut: Right Arrow (→)">
+            <span class="icon">✓</span>
+            <span class="label">Keep (→)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 2: HEAVY MEDIA SORTER -->
+      <div class="view-section" id="view-videos">
+        <div class="view-header">
+          <div>
+            <h2>🎬 Heavyweight Media Sorter</h2>
+            <p>Sorted by file size (largest first) with instant video thumbnails and direct playback.</p>
+          </div>
+        </div>
+        <div class="media-list" id="heavy-list"></div>
+      </div>
+
+      <!-- VIEW 3: TRASH STAGING AREA -->
+      <div class="view-section" id="view-trash">
+        <div class="view-header">
+          <div>
+            <h2>🗑️ System Trash Stage</h2>
+            <p>Preview flagged photos & videos before moving them to your device's Trash.</p>
+          </div>
+          <div class="trash-actions">
+            <button class="btn btn-secondary" id="btn-restore-all">Restore All</button>
+            <button class="btn btn-danger" id="btn-commit-trash">Execute Cleanup (<span id="commit-size">0.0 MB</span>)</button>
+          </div>
+        </div>
+        <div class="media-list" id="trash-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL 1: Vapor Division Security & Privacy Consent ("Believe this website?") -->
+  <div class="modal-backdrop" id="consent-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>⚡ Do You Trust This Website?</h3>
+        <button class="close-btn" id="btn-close-consent">✕</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>MediaCleaner</strong> by <strong>Vapor Division</strong> operates on a strict <strong>100% Local-First / Zero-Server</strong> architecture.</p>
+        <p>Your photos and videos are analyzed directly inside your device's RAM. <strong>Zero bytes are ever uploaded to the internet.</strong></p>
+        <div class="impact-box" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3);">
+          <span>Security Verification</span>
+          <strong style="color: #818cf8; font-size: 15px;">100% Offline Sandbox</strong>
+        </div>
+        <div class="donate-links">
+          <button class="btn btn-secondary" id="btn-cancel-consent">Cancel</button>
+          <button class="btn btn-primary" id="btn-confirm-consent">✓ I Trust, Load Media</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Direct Video & Image Player Lightbox -->
+  <div class="modal-backdrop" id="player-modal" hidden>
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="player-title">🎬 Media Preview</h3>
+        <button class="close-btn" id="btn-close-player">✕</button>
+      </div>
+      <div class="player-stage">
+        <video id="lightbox-video" controls playsinline hidden></video>
+        <img id="lightbox-img" alt="Full Preview" hidden />
+        <canvas id="lightbox-canvas" hidden></canvas>
+      </div>
+      <div class="player-footer">
+        <span id="player-meta" class="size-pill">0.0 MB</span>
+        <div class="row-actions">
+          <button class="btn btn-sm btn-secondary" id="btn-player-keep">✓ Keep File</button>
+          <button class="btn btn-sm btn-danger" id="btn-player-trash">🗑️ Move to Trash</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Execute Cleanup & Cross-Platform OS Trash Sync + Donate -->
+  <div class="modal-backdrop" id="donate-modal" hidden>
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>🗑️ Cleanup Executed & OS Trash Sync</h3>
+        <button class="close-btn" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="impact-box">
+          <span>Total Reclaimed Storage</span>
+          <strong id="modal-freed-size">0.0 MB</strong>
+        </div>
+
+        <p id="cleanup-status-msg">Your flagged files have been staged for removal.</p>
+
+        <!-- Cross-Platform Trash Actions (Desktop & Mobile) -->
+        <div class="os-trash-box" id="os-trash-box" hidden>
+          <h4>💻📱 Sync with Native Device Trash</h4>
+          <p class="sub-note">Because web browsers block silent background deletion for your safety, choose your device below to finish moving these <strong id="trashed-count-label">0</strong> files to your native OS Trash:</p>
+          
+          <div class="os-buttons">
+            <button class="btn btn-secondary btn-sm" id="btn-mac-trash">
+              🍎 Move to macOS Trash (.command)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-win-trash">
+              🪟 Move to Windows Recycle Bin (.bat)
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-mobile-export">
+              📲 Mobile: Export/Save Kept Media
+            </button>
+          </div>
+
+          <!-- Visual Thumbnail Grid of Trashed Files for Mobile/Desktop Check -->
+          <div class="trashed-mini-grid" id="trashed-mini-grid"></div>
+        </div>
+
+        <hr class="modal-divider" />
+
+        <p><strong>MediaCleaner</strong> is 100% free and open-source. If our tool helped you reclaim gigabytes, consider supporting <strong>Vapor Division</strong>:</p>
+        <div class="donate-links">
+          <a href="https://ko-fi.com" target="_blank" rel="noopener" class="btn btn-primary">☕ Support via Ko-fi</a>
+          <a href="https://github.com/VaporDivision" target="_blank" rel="noopener" class="btn btn-secondary">⭐ Star on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-Side Engine -->
+  <script src="script.js"></script>
+</body>
+</html>
